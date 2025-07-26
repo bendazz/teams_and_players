@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Team Roster Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .control-group {
+            margin: 20px 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        select {
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 250px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            border-color: #2a5298;
+            outline: none;
+        }
+
+        .load-btn {
+            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-top: 20px;
+        }
+
+        .load-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(42, 82, 152, 0.4);
+        }
+
+        .load-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .team-header {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .team-header.show {
+            display: flex;
+        }
+
+        .team-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+
+        .team-info h2 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .team-info p {
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .roster-container {
+            display: none;
+        }
+
+        .roster-container.show {
+            display: block;
+        }
+
+        .position-group {
+            background: white;
+            margin-bottom: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .position-header {
+            padding: 20px;
+            font-size: 1.4em;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+        }
+
+        .players-grid {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .player-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .player-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .player-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 10px;
+            display: block;
+            border: 3px solid #ddd;
+        }
+
+        .player-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .player-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .player-position {
+            background: #6c757d;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: inline-block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .team-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .players-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
+            
+            select {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏈 NFL Team Roster Viewer</h1>
+            <p>Select a team and week to view the roster</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="team-select">Select Team:</label>
+                <select id="team-select">
+                    <option value="">Choose a team...</option>
+                    {% for team in teams %}
+                    <option value="{{ team }}">{{ team }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="week-select">Select Week:</label>
+                <select id="week-select">
+                    <option value="">Choose a week...</option>
+                    {% for week in weeks %}
+                    <option value="{{ week }}">Week {{ week }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button class="load-btn" id="load-roster" disabled>Load Roster</button>
+        </div>
+
+        <div class="team-header" id="team-header">
+            <img class="team-logo" id="team-logo" src="" alt="Team Logo">
+            <div class="team-info">
+                <h2 id="team-name"></h2>
+                <p id="week-info"></p>
+            </div>
+        </div>
+
+        <div class="loading" id="loading" style="display: none;">
+            Loading roster...
+        </div>
+
+        <div class="error" id="error" style="display: none;"></div>
+
+        <div class="info" id="info" style="display: none;"></div>
+
+        <div class="roster-container" id="roster-container"></div>
+    </div>
+
+    <script>
+        const teamSelect = document.getElementById('team-select');
+        const weekSelect = document.getElementById('week-select');
+        const loadBtn = document.getElementById('load-roster');
+        const teamHeader = document.getElementById('team-header');
+        const teamLogo = document.getElementById('team-logo');
+        const teamName = document.getElementById('team-name');
+        const weekInfo = document.getElementById('week-info');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const info = document.getElementById('info');
+        const rosterContainer = document.getElementById('roster-container');
+
+        // Enable load button when both team and week are selected
+        function checkSelections() {
+            loadBtn.disabled = !teamSelect.value || !weekSelect.value;
+        }
+
+        // Load available weeks for selected team
+        async function loadTeamWeeks(teamName) {
+            try {
+                const response = await fetch(`/team_weeks?team=${encodeURIComponent(teamName)}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const availableWeeks = data.available_weeks;
+                    // Update week options to show which are available
+                    Array.from(weekSelect.options).forEach(option => {
+                        if (option.value) {
+                            const weekNum = parseInt(option.value);
+                            if (availableWeeks.includes(weekNum)) {
+                                option.textContent = `Week ${weekNum} ✓`;
+                                option.style.color = '#28a745';
+                            } else {
+                                option.textContent = `Week ${weekNum}`;
+                                option.style.color = '#6c757d';
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.log('Could not load team weeks:', err);
+            }
+        }
+
+        teamSelect.addEventListener('change', function() {
+            checkSelections();
+            if (this.value) {
+                loadTeamWeeks(this.value);
+            } else {
+                // Reset week options
+                Array.from(weekSelect.options).forEach(option => {
+                    if (option.value) {
+                        const weekNum = parseInt(option.value);
+                        option.textContent = `Week ${weekNum}`;
+                        option.style.color = '';
+                    }
+                });
+            }
+        });
+        weekSelect.addEventListener('change', checkSelections);
+
+        // Load roster data
+        loadBtn.addEventListener('click', async function() {
+            const team = teamSelect.value;
+            const week = weekSelect.value;
+            
+            if (!team || !week) return;
+
+            // Show loading, hide others
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            info.style.display = 'none';
+            teamHeader.classList.remove('show');
+            rosterContainer.classList.remove('show');
+
+            try {
+                const response = await fetch(`/roster?team=${encodeURIComponent(team)}&week=${week}`);
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers.get('content-type'));
+                
+                // Check if response is actually JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Server returned non-JSON response:', text);
+                    throw new Error('Server returned invalid response format');
+                }
+                
+                const text = await response.text();
+                console.log('Raw response text (first 500 chars):', text.substring(0, 500));
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
+                    console.error('Full response text:', text);
+                    throw new Error('Failed to parse server response as JSON');
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load roster');
+                }
+
+                // Hide loading
+                loading.style.display = 'none';
+
+                // Show info message if using fallback data
+                if (!data.week_available) {
+                    info.innerHTML = `⚠️ Week ${week} data not available for ${team}. Showing Week ${data.week} roster instead.`;
+                    info.style.display = 'block';
+                } else {
+                    info.style.display = 'none';
+                }
+
+                // Update team header
+                teamLogo.src = data.team_info.logo;
+                teamName.textContent = data.team_info.name;
+                teamName.style.color = data.team_info.colors.primary;
+                weekInfo.textContent = `Week ${data.week} Roster`;
+                teamHeader.classList.add('show');
+
+                // Build roster display
+                displayRoster(data.roster, data.team_info.colors);
+
+            } catch (err) {
+                loading.style.display = 'none';
+                error.textContent = err.message;
+                error.style.display = 'block';
+            }
+        });
+
+        function displayRoster(roster, teamColors) {
+            rosterContainer.innerHTML = '';
+
+            Object.entries(roster).forEach(([groupName, players]) => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'position-group';
+
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'position-header';
+                headerDiv.textContent = `${groupName} (${players.length})`;
+                headerDiv.style.background = `linear-gradient(135deg, ${teamColors.primary} 0%, ${teamColors.secondary || teamColors.primary} 100%)`;
+
+                const playersGrid = document.createElement('div');
+                playersGrid.className = 'players-grid';
+
+                players.forEach(player => {
+                    const playerCard = document.createElement('div');
+                    playerCard.className = 'player-card';
+                    playerCard.style.borderColor = teamColors.primary;
+
+                    const jerseyNum = player.jersey_number ? Math.floor(player.jersey_number) : '?';
+
+                    playerCard.innerHTML = `
+                        <img class="player-photo" src="${player.headshot_url}" alt="${player.player_name}" 
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiNkZGQiLz4KPHN2ZyB4PSIyMCIgeT0iMjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjOTk5Ij4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDEyQzE0LjIwOTEgMTIgMTYgMTAuMjA5MSAxNiA4QzE2IDUuNzkwODYgMTQuMjA5MSA0IDEyIDRDOS43OTA4NiA0IDggNS43OTA4NiA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaIiBmaWxsPSIjOTk5Ii8+CjxwYXRoIGQ9Ik0xMiAxNEM5LjMzIDYuNjcgNi42NyA2IDQgNkM0IDE2IDQgMTggMTIgMThDMjAgMTggMjAgMTYgMjAgNkMxNy4zMyA2IDE0LjY3IDYuNjcgMTIgNloiIGZpbGw9IiM5OTkiLz4KPC9zdmc+CiZsdDsvc3ZnJmd0Ow=='">
+                        <div class="player-number" style="color: ${teamColors.primary}">#${jerseyNum}</div>
+                        <div class="player-name">${player.player_name}</div>
+                        <div class="player-position" style="background: ${teamColors.primary}">${player.position}</div>
+                    `;
+
+                    playersGrid.appendChild(playerCard);
+                });
+
+                groupDiv.appendChild(headerDiv);
+                groupDiv.appendChild(playersGrid);
+                rosterContainer.appendChild(groupDiv);
+            });
+
+            rosterContainer.classList.add('show');
+        }
+    </script>
+</body>
+</html>
